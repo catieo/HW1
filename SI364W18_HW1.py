@@ -5,19 +5,123 @@
 #################################
 
 ## List below here, in a comment/comments, the people you worked with on this assignment AND any resources you used to find code (50 point deduction for not doing so). If none, write "None".
-
+## https://www.yelp.com/developers/v3/manage_app?saved_changes=True 
+## https://www.yelp.com/developers/documentation/v3/business_search
+## https://github.com/Yelp/yelp-fusion/blob/master/fusion/python/sample.py
+## http://jsoneditoronline.org/ 
 
 
 ## [PROBLEM 1] - 150 points
 ## Below is code for one of the simplest possible Flask applications. Edit the code so that once you run this application locally and go to the URL 'http://localhost:5000/class', you see a page that says "Welcome to SI 364!"
 
-from flask import Flask
+from flask import Flask, request
+import requests
+import json
+import api_info_template
 app = Flask(__name__)
 app.debug = True
 
 @app.route('/')
 def hello_to_you():
     return 'Hello!'
+
+#Problem 1 solution
+@app.route('/class')
+def hello_class():
+	return 'Welcome to SI 364!'
+
+#Problem 2 solution
+@app.route('/movie/<anytitlesearch>')
+def movie_search(anytitlesearch):
+	baseurl = "https://itunes.apple.com/search?"
+	search_query = {"term" : anytitlesearch, "entity" : "movie"}
+	response = requests.get(baseurl, params=search_query)
+	return str(response.json())
+
+#Problem 3 solution 
+#displays form asking user for favorite number
+@app.route('/question')
+def question():
+	formstring = """
+	<form action="/result" method='GET'>
+	<h1>Enter your favorite number:</h1>
+	<input type="text" name="fav_number">  
+	<input type="submit" value="Submit">"""
+	return formstring
+
+#prints the result of the form which is doubling the value entered 
+@app.route('/result', methods=["GET"])
+def question_result():
+	result_str = "Double your favorite number is "
+	if request.method == "GET":
+		num = request.args.get('fav_number', '0')
+		return result_str + str(int(num)*2)
+	return "You didn't enter a number!"
+
+#Problem 4 solution
+#accesses Yelp Search API
+#form will ask for a location in the form a city name (text input)
+#form will also ask for user to check boxes indicated what kind of results are wanted (kinds of restaurants)
+#when submitted, results returned will display recommendations from the Yelp Search API based on input info 
+@app.route('/problem4form', methods=["GET"])
+def problem4():
+	#html form 
+	formstring = """
+	<form action="/problem4form" method="GET">
+	<h1>Welcome to the Restaurant Recommender!</h1>
+	<h2>Please enter your location (name of a city):<h2>
+	<input type="text" name="city"> <br>
+	<h2>Please check which kind of restaurant you're looking for: </h2>
+	<input type="checkbox" name="restaurant1" value="Breakfast"> Breakfast <br>
+	<input type="checkbox" name="restaurant2" value="Brunch"> Brunch <br>
+	<input type="checkbox" name="restaurant3" value="Lunch"> Lunch <br>
+	<input type="checkbox" name="restaurant4" value="Dinner"> Dinner <br>
+	<input type="checkbox" name="restaurant5" value="Coffee"> Coffee <br>
+	<input type="checkbox" name="restaurant6" value="Ice Cream"> Ice Cream  <br><br>
+	<input type="submit" value="Submit">
+	<br><br>
+	"""
+
+	#secret values 
+	client_id = api_info_template.client_id
+	client_secret = api_info_template.client_secret
+	access_token = api_info_template.access_token
+
+	#authentication to yelp 
+	base_url = "https://api.yelp.com/v3/businesses/search"
+	headers = {'Authorization' : 'Bearer %s' % access_token,}
+
+	if request.method == 'GET':
+		result_str = formstring
+		#determine search terms from input data 
+		url_params = {} 
+		url_params["limit"] = 3
+		url_params["location"] = request.args.get('city').replace(' ', '+')
+		#determine which checkboxes were selected before putting it in the url_params dict
+		restaurant_type = {}
+		restaurant_type["restaurant1"] = request.args.get('restaurant1')
+		restaurant_type["restaurant2"] = request.args.get('restaurant2')
+		restaurant_type["restaurant3"] = request.args.get('restaurant3')
+		restaurant_type["restaurant4"] = request.args.get('restaurant4')
+		restaurant_type["restaurant5"] = request.args.get('restaurant5')
+		restaurant_type["restaurant6"] = request.args.get('restaurant6')
+		#make a separate request for each restaurant type selected 
+		for x in restaurant_type:
+			#if the checkbox was not selected, don't make a request for that search term 
+			if restaurant_type[x] != None:
+				url_params["term"] = restaurant_type[x] 
+		 		#make request 
+				response = requests.request('GET', base_url, headers=headers, params=url_params)
+				#parse through the json object and retrieve the names of each business returned
+				names = ""
+				for business in response.json()["businesses"]:
+					names = names + business["name"] + '<br>'
+				#format string to be displayed to user 
+				recommendation_str = "For " + restaurant_type[x] + ", you should try: <br>" + names + "<br>"
+				result_str = result_str + recommendation_str 
+		return result_str
+	return formstring
+
 
 
 if __name__ == '__main__':
