@@ -1,4 +1,4 @@
-#Delete these before turning in and submit values via canvas so they can enter them! 
+#Enter the values I submitted on canvas here! 
 
 client_id = ""
 client_secret = ""
