@@ -96,7 +96,7 @@ def problem4():
 		#determine search terms from input data 
 		url_params = {} 
 		url_params["limit"] = 3
-		url_params["location"] = request.args.get('city').replace(' ', '+')
+		url_params["location"] = request.args.get('city', "").replace(' ', '+')
 		#determine which checkboxes were selected before putting it in the url_params dict
 		restaurant_type = {}
 		restaurant_type["restaurant1"] = request.args.get('restaurant1')
@@ -120,7 +120,8 @@ def problem4():
 				recommendation_str = "For " + restaurant_type[x] + ", you should try: <br>" + names + "<br>"
 				result_str = result_str + recommendation_str 
 		return result_str
-	return formstring
+	else: 
+		return formstring
 
 
 
